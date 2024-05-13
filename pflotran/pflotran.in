@@ -1,0 +1,320 @@
+#3Dxiongan——eara
+SIMULATION
+  SIMULATION_TYPE SUBSURFACE
+  PROCESS_MODELS
+    SUBSURFACE_FLOW flow
+      MODE RICHARDS
+    /
+  /
+END
+
+SUBSURFACE
+
+
+#=========================== discretization ===================================
+GRID
+  TYPE structured
+  NXYZ 330 269 10
+  ORIGIN 0 0 0
+  DXYZ
+        100
+        100
+        34.67 20.61 18.14 15.83 13.51 11.02 8.72 6.52 3.93 2.05
+        
+  /
+END
+#=========================== datasets =========================================
+
+
+DATASET Initial_Head
+  FILENAME H_Initial.h5
+  HDF5_DATASET_NAME Initial_Head
+END
+
+
+
+
+#=========================== material properties ==============================
+MATERIAL_PROPERTY One_local
+  ID 1
+  POROSITY 0.3
+  TORTUOSITY 1.0
+  PERMEABILITY
+    PERM_X 2.78e-4
+    PERM_Y 2.78e-4
+    PERM_Z 2.78e-4
+  /
+  CHARACTERISTIC_CURVES cc1
+  ROCK_DENSITY 2760
+END
+
+MATERIAL_PROPERTY Two_local
+  ID 2
+  POROSITY 0.3
+  TORTUOSITY 1.0
+  PERMEABILITY
+    PERM_X 1.85e-4
+    PERM_Y 1.85e-4
+    PERM_Z 1.85e-4
+  /
+  CHARACTERISTIC_CURVES cc1
+  ROCK_DENSITY 2650
+END
+
+MATERIAL_PROPERTY Three_local
+  ID 3
+  POROSITY 0.3
+  TORTUOSITY 1.0
+  PERMEABILITY
+    PERM_X 1.15e-4
+    PERM_Y 1.15e-4
+    PERM_Z 1.15e-4
+  /
+  CHARACTERISTIC_CURVES cc2
+  ROCK_DENSITY 2650     
+END
+
+MATERIAL_PROPERTY Four_local
+  ID 4
+  POROSITY 0.3
+  TORTUOSITY 1.0
+  PERMEABILITY
+    PERM_X 4.63e-5
+    PERM_Y 4.63e-5
+    PERM_Z 4.63e-5
+  /
+  CHARACTERISTIC_CURVES cc3
+  ROCK_DENSITY 2650     
+END
+
+
+
+!=========================== saturation functions =============================
+CHARACTERISTIC_CURVES cc1
+  SATURATION_FUNCTION VAN_GENUCHTEN
+    LIQUID_RESIDUAL_SATURATION 0.16
+    M 0.3391
+    ALPHA 7.2727e-4
+  /
+  PERMEABILITY_FUNCTION BURDINE_VG_LIQ
+    LIQUID_RESIDUAL_SATURATION 0.16
+    M 0.3391
+  /
+END
+
+CHARACTERISTIC_CURVES cc2
+  SATURATION_FUNCTION VAN_GENUCHTEN
+    LIQUID_RESIDUAL_SATURATION 0.1229
+    M 0.7479
+    ALPHA 1.4319e-4
+  /
+  PERMEABILITY_FUNCTION BURDINE_VG_LIQ
+    LIQUID_RESIDUAL_SATURATION 0.1229
+    M 0.7479
+  /
+END
+
+
+CHARACTERISTIC_CURVES cc3
+  SATURATION_FUNCTION VAN_GENUCHTEN
+    LIQUID_RESIDUAL_SATURATION 0.16
+    M 0.3391
+    ALPHA 1.4319e-4
+  /
+  PERMEABILITY_FUNCTION MUALEM_VG_LIQ
+    LIQUID_RESIDUAL_SATURATION 0.16
+    M 0.3391
+  /
+END
+#=========================== output options ===================================
+OUTPUT
+  TIME_UNITS day
+
+  SNAPSHOT_FILE
+    PERIODIC TIME 1 day
+    FORMAT HDF5
+  /
+  
+  MASS_BALANCE_FILE
+    PERIODIC TIME 1 day
+  /
+  
+  VARIABLES
+    LIQUID_PRESSURE
+    LIQUID_SATURATION
+    LIQUID_HEAD
+    PERMEABILITY
+  /
+VELOCITY_AT_CENTER
+
+END
+#=========================== times ============================================
+TIME
+  FINAL_TIME  5 day
+  INITIAL_TIMESTEP_SIZE 1 h
+  MAXIMUM_TIMESTEP_SIZE 24 h
+END
+
+
+#=========================== regions ==========================================
+REGION all
+  COORDINATES
+    0.0 00.0 00.0 
+    33000.0 26900.0 135.0
+  /
+END
+
+
+
+REGION Top 
+  FACE TOP
+  COORDINATES
+    0.0 0.0 135.0 
+    33000.0 26900.0 135.0
+  /
+END
+
+
+
+
+REGION northwest
+ FILE BC_boundary.h5
+END
+
+REGION northeast
+ FILE BC_boundary.h5
+END
+
+REGION southeast
+ FILE BC_boundary.h5
+END
+
+
+REGION south 
+  FACE south
+  COORDINATES
+    0.0 0.0 0.0 
+    33000.0 0.0 135.0
+  /
+END
+
+REGION Well_Region_1
+  COORDINATES
+    16500	13450	80
+  /
+END
+
+
+
+
+
+#=========================== flow conditions ==================================
+
+MINIMUM_HYDROSTATIC_PRESSURE -1.d0
+
+FLOW_CONDITION initial
+  TYPE
+    LIQUID_PRESSURE HYDROSTATIC
+    TEMPERATURE DIRICHLET
+  /
+  LIQUID_PRESSURE 101325.d0
+  DATUM DATASET Initial_Head
+  TEMPERATURE 25
+END
+
+
+
+FLOW_CONDITION BC_southeast
+  TYPE
+    LIQUID_PRESSURE seepage
+    TEMPERATURE DIRICHLET
+  /
+  LIQUID_PRESSURE 101325.d0
+  DATUM FILE byd_river.txt
+  TEMPERATURE 25
+/
+
+
+FLOW_CONDITION BC_northeast
+  TYPE
+    LIQUID_PRESSURE seepage
+    TEMPERATURE DIRICHLET
+  /
+  LIQUID_PRESSURE 101325.d0
+  DATUM FILE njm_river.txt
+  TEMPERATURE 25
+/
+
+
+FLOW_CONDITION precipitation
+  TYPE
+    LIQUID_FLUX NEUMANN
+    TEMPERATURE DIRICHLET
+  /
+  LIQUID_FLUX FILE precipitation.txt
+  TEMPERATURE 25
+/ 
+
+
+FLOW_CONDITION Well_Operation_extraction
+  TYPE
+    RATE MASS_RATE
+    TEMPERATURE DIRICHLET
+  /
+  RATE FILE Extraction.txt  
+  TEMPERATURE 25
+ /
+
+#=========================== condition couplers ===============================
+INITIAL_CONDITION
+  FLOW_CONDITION initial
+  #TRANSPORT_CONDITION Trans_Initial
+  REGION all
+END
+
+
+
+
+
+BOUNDARY_CONDITION Top_precipitation
+  FLOW_CONDITION precipitation
+  #TRANSPORT_CONDITION Trans_Initial
+  REGION Top 
+END
+
+
+BOUNDARY_CONDITION northwest
+ FLOW_CONDITION initial
+ #TRANSPORT_CONDITION Trans_River
+ REGION northwest
+END
+
+
+BOUNDARY_CONDITION southeast
+  FLOW_CONDITION BC_southeast
+  #TRANSPORT_CONDITION Trans_Initial
+  REGION southeast
+END
+
+BOUNDARY_CONDITION northeast
+  FLOW_CONDITION BC_northeast
+  #TRANSPORT_CONDITION Trans_Initial
+  REGION northeast
+END
+
+
+
+SOURCE_SINK extraction1
+  FLOW_CONDITION Well_Operation_extraction
+  #TRANSPORT_CONDITION Trans_Initial
+  REGION  Well_Region_1
+END
+
+
+
+#=========================== stratigraphy couplers ============================
+STRATA
+  FILE Materials.h5
+END
+
+END_SUBSURFACE
